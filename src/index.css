@@ -1,0 +1,59 @@
+@import "leaflet/dist/leaflet.css";
+@import "tailwindcss";
+
+@theme {
+  --color-alpine-50: #faf8f5;
+  --color-alpine-100: #f3efe8;
+  --color-alpine-200: #e8e0d4;
+  --color-alpine-300: #d4c7b3;
+  --color-alpine-400: #b8a48a;
+  --color-alpine-500: #9c8268;
+  --color-alpine-600: #8a7058;
+  --color-alpine-700: #6e5a47;
+  --color-alpine-800: #5a4a3b;
+  --color-alpine-900: #4a3d32;
+
+  --color-forest-400: #6a9e76;
+  --color-forest-500: #4a7c59;
+  --color-forest-600: #3d6b4a;
+  --color-forest-700: #2f5438;
+
+  --color-sky-300: #93c5e0;
+  --color-sky-400: #7cb4d4;
+  --color-sky-500: #5a9bc0;
+  --color-sky-600: #4682a4;
+
+  --color-sunset-300: #f0c4a0;
+  --color-sunset-400: #e8a87c;
+  --color-sunset-500: #d4865a;
+  --color-sunset-600: #b8704a;
+
+  --font-heading: Georgia, 'Times New Roman', serif;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Leaflet overrides */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  font-family: system-ui, -apple-system, sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.leaflet-container {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.map-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
