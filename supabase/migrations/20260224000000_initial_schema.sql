@@ -176,6 +176,24 @@ CREATE TABLE public.plans (
 
 CREATE INDEX idx_plans_owner ON public.plans(owner_id);
 
+-- ==========================================
+-- PLAN MEMBERS (sharing — created early because RLS policies reference it)
+-- ==========================================
+CREATE TABLE public.plan_members (
+    plan_id UUID NOT NULL REFERENCES public.plans(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    role TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('owner', 'editor', 'viewer')),
+    invited_at TIMESTAMPTZ DEFAULT now(),
+    accepted_at TIMESTAMPTZ,
+    PRIMARY KEY (plan_id, user_id)
+);
+
+ALTER TABLE public.plan_members ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their memberships"
+    ON public.plan_members FOR SELECT
+    USING (user_id = auth.uid() OR plan_id IN (SELECT id FROM public.plans WHERE owner_id = auth.uid()));
+
 ALTER TABLE public.plans ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view own plans"
@@ -365,24 +383,6 @@ CREATE POLICY "Users can update notes for their plans"
 CREATE POLICY "Users can delete notes for their plans"
     ON public.plan_notes FOR DELETE
     USING (plan_id IN (SELECT id FROM public.plans WHERE owner_id = auth.uid()));
-
--- ==========================================
--- PHASE C: PLAN MEMBERS (sharing stubs)
--- ==========================================
-CREATE TABLE public.plan_members (
-    plan_id UUID NOT NULL REFERENCES public.plans(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    role TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('owner', 'editor', 'viewer')),
-    invited_at TIMESTAMPTZ DEFAULT now(),
-    accepted_at TIMESTAMPTZ,
-    PRIMARY KEY (plan_id, user_id)
-);
-
-ALTER TABLE public.plan_members ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view their memberships"
-    ON public.plan_members FOR SELECT
-    USING (user_id = auth.uid() OR plan_id IN (SELECT id FROM public.plans WHERE owner_id = auth.uid()));
 
 -- ==========================================
 -- PHASE C: PLAN MESSAGES (chat stubs)
