@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
+import { useDestination } from '../contexts/DestinationContext'
 import type { Activity, Category } from '../types'
-
-const VIPITENO_CENTER: [number, number] = [46.8968, 11.4294]
-const DEFAULT_ZOOM = 14
 
 const CATEGORY_COLORS: Record<Category, string> = {
   food: '#d4865a',
@@ -54,6 +52,13 @@ function MapBoundsUpdater({ activities }: { activities: Activity[] }) {
 }
 
 export function MapView({ activities, onSelectActivity }: MapViewProps) {
+  const { destination } = useDestination()
+
+  const center: [number, number] = destination
+    ? [destination.latitude, destination.longitude]
+    : [46.8968, 11.4294]
+  const defaultZoom = destination?.defaultZoom ?? 14
+
   const mappable = useMemo(
     () => activities.filter((a) => a.location.lat != null && a.location.lng != null),
     [activities],
@@ -73,8 +78,8 @@ export function MapView({ activities, onSelectActivity }: MapViewProps) {
   return (
     <div className="rounded-xl overflow-hidden border border-alpine-200 shadow-sm" style={{ height: '65vh' }}>
       <MapContainer
-        center={VIPITENO_CENTER}
-        zoom={DEFAULT_ZOOM}
+        center={center}
+        zoom={defaultZoom}
         className="h-full w-full"
         zoomControl={true}
       >

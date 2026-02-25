@@ -1,16 +1,17 @@
 import { useState, useMemo } from 'react'
-import { activities } from '../data/activities'
+import { useDestination } from '../contexts/DestinationContext'
 import { FilterBar, type Filters } from './FilterBar'
 import { ActivityCard } from './ActivityCard'
 import { ActivityDetail } from './ActivityDetail'
 import { MapView } from './MapView'
-import type { Planner } from '../hooks/usePlanner'
+import type { Planner } from '../contexts/PlanContext'
 
 interface ExploreViewProps {
   planner: Planner
 }
 
 export function ExploreView({ planner }: ExploreViewProps) {
+  const { activities } = useDestination()
   const [filters, setFilters] = useState<Filters>({ category: 'all', season: null, toddlerFriendly: false, viewMode: 'list' })
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
@@ -21,7 +22,7 @@ export function ExploreView({ planner }: ExploreViewProps) {
       if (filters.toddlerFriendly && a.kidFriendliness < 4) return false
       return true
     })
-  }, [filters])
+  }, [activities, filters])
 
   const selectedActivity = selectedId ? activities.find((a) => a.id === selectedId) : null
 

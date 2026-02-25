@@ -23,6 +23,7 @@ export interface Activity {
   priceRange?: '€' | '€€' | '€€€'
   website?: string
   imageEmoji: string
+  photoUrls?: string[]
 }
 
 export type ActivityStatus = 'none' | 'want' | 'done'

@@ -3,6 +3,7 @@ import type { Activity, ItineraryDay } from '../types'
 import { CategoryBadge } from './CategoryBadge'
 import { KidRating } from './KidRating'
 import { MapLink } from './MapLink'
+import { PhotoCarousel } from './PhotoCarousel'
 
 interface ActivityDetailProps {
   activity: Activity
@@ -32,6 +33,13 @@ export function ActivityDetail({ activity, note, onNoteChange, itinerary, onAddT
         </div>
 
         <div className="p-4 space-y-4">
+          {/* Photo carousel */}
+          <PhotoCarousel
+            photos={activity.photoUrls ?? []}
+            fallbackEmoji={activity.imageEmoji}
+            alt={activity.name}
+          />
+
           {activity.nameDE && activity.nameDE !== activity.name && (
             <p className="text-sm text-alpine-400">German: {activity.nameDE}</p>
           )}

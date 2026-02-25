@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import { Plus, Sparkles } from 'lucide-react'
-import { suggestedDays } from '../data/itinerary-templates'
+import { useDestination } from '../contexts/DestinationContext'
 import { DayPlanner } from './DayPlanner'
-import type { Planner } from '../hooks/usePlanner'
+import type { Planner } from '../contexts/PlanContext'
 
 interface ItineraryViewProps {
   planner: Planner
 }
 
 export function ItineraryView({ planner }: ItineraryViewProps) {
+  const { destination, templates } = useDestination()
   const [newDayLabel, setNewDayLabel] = useState('')
 
   const handleAddDay = () => {
@@ -23,7 +24,7 @@ export function ItineraryView({ planner }: ItineraryViewProps) {
         <div className="mb-6">
           <div className="text-center py-8 mb-4">
             <p className="text-4xl mb-2">📋</p>
-            <p className="text-sm text-alpine-400">Plan your days in Vipiteno</p>
+            <p className="text-sm text-alpine-400">Plan your days in {destination?.name ?? 'your destination'}</p>
           </div>
 
           <div>
@@ -32,7 +33,7 @@ export function ItineraryView({ planner }: ItineraryViewProps) {
               Quick Start Templates
             </h3>
             <div className="space-y-2">
-              {suggestedDays.map((template) => (
+              {templates.map((template) => (
                 <button
                   key={template.id}
                   onClick={() => planner.loadTemplate(template)}
@@ -79,7 +80,7 @@ export function ItineraryView({ planner }: ItineraryViewProps) {
             Add from templates
           </h3>
           <div className="flex gap-2 flex-wrap">
-            {suggestedDays.map((template) => (
+            {templates.map((template) => (
               <button
                 key={template.id}
                 onClick={() => planner.loadTemplate(template)}

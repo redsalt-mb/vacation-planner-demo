@@ -1,17 +1,13 @@
 import { Trash2, ChevronUp, ChevronDown, MapPin, Plus, Clock } from 'lucide-react'
-import { activities } from '../data/activities'
+import { useDestination } from '../contexts/DestinationContext'
 import { getTravelInfo } from '../utils/travel'
 import type { ItineraryDay, Activity } from '../types'
-import type { Planner } from '../hooks/usePlanner'
-import { useState } from 'react'
+import type { Planner } from '../contexts/PlanContext'
+import { useState, useCallback } from 'react'
 
 interface DayPlannerProps {
   day: ItineraryDay
   planner: Planner
-}
-
-function getActivity(id: string): Activity | undefined {
-  return activities.find((a) => a.id === id)
 }
 
 function MealTag({ emoji, label }: { emoji: string; label: string }) {
@@ -36,7 +32,12 @@ function TravelRow({ emoji, label }: { emoji: string; label: string }) {
 }
 
 export function DayPlanner({ day, planner }: DayPlannerProps) {
+  const { activities } = useDestination()
   const [showAdd, setShowAdd] = useState(false)
+
+  const getActivity = useCallback((id: string): Activity | undefined => {
+    return activities.find((a) => a.id === id)
+  }, [activities])
 
   const available = activities.filter((a) => !day.activityIds.includes(a.id))
 

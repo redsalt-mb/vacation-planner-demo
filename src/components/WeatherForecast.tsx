@@ -1,4 +1,5 @@
 import { CloudSun } from 'lucide-react'
+import { useDestination } from '../contexts/DestinationContext'
 import { useWeatherForecast } from '../hooks/useWeatherForecast'
 
 function weatherEmoji(code: number): string {
@@ -12,7 +13,15 @@ function weatherEmoji(code: number): string {
 }
 
 export function WeatherForecast() {
-  const { forecast, isLoading, error } = useWeatherForecast()
+  const { destination } = useDestination()
+
+  const { forecast, isLoading, error } = useWeatherForecast({
+    latitude: destination?.latitude ?? 0,
+    longitude: destination?.longitude ?? 0,
+    timezone: destination?.timezone ?? 'auto',
+  })
+
+  if (!destination) return null
 
   return (
     <div>

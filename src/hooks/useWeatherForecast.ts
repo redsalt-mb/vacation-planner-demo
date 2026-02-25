@@ -15,10 +15,13 @@ interface UseWeatherForecastResult {
   error: string | null
 }
 
-const API_URL =
-  'https://api.open-meteo.com/v1/forecast?latitude=46.8968&longitude=11.4294&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&timezone=Europe/Rome'
+interface UseWeatherForecastOptions {
+  latitude: number
+  longitude: number
+  timezone?: string
+}
 
-export function useWeatherForecast(): UseWeatherForecastResult {
+export function useWeatherForecast({ latitude, longitude, timezone = 'auto' }: UseWeatherForecastOptions): UseWeatherForecastResult {
   const [forecast, setForecast] = useState<ForecastDay[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -28,7 +31,8 @@ export function useWeatherForecast(): UseWeatherForecastResult {
 
     async function fetchForecast() {
       try {
-        const res = await fetch(API_URL, { signal: controller.signal })
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&timezone=${timezone}`
+        const res = await fetch(url, { signal: controller.signal })
         if (!res.ok) throw new Error('Failed to fetch weather data')
 
         const data = await res.json()
@@ -52,7 +56,7 @@ export function useWeatherForecast(): UseWeatherForecastResult {
 
     fetchForecast()
     return () => controller.abort()
-  }, [])
+  }, [latitude, longitude, timezone])
 
   return { forecast, isLoading, error }
 }

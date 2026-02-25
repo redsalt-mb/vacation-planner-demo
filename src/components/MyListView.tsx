@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { Heart, CheckCircle } from 'lucide-react'
-import { activities } from '../data/activities'
+import { useDestination } from '../contexts/DestinationContext'
 import { ActivityCard } from './ActivityCard'
 import { ActivityDetail } from './ActivityDetail'
-import type { Planner } from '../hooks/usePlanner'
+import type { Planner } from '../contexts/PlanContext'
 
 interface MyListViewProps {
   planner: Planner
 }
 
 export function MyListView({ planner }: MyListViewProps) {
+  const { activities } = useDestination()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selectedActivity = selectedId ? activities.find((a) => a.id === selectedId) : null
 
