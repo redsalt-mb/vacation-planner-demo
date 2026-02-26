@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { ArrowLeft, UserPlus, Mail, Lock, User, Loader2 } from 'lucide-react'
+import { ArrowLeft, UserPlus, Mail, Lock, User, Loader2, CheckCircle } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 interface SignupFormProps {
@@ -14,6 +14,7 @@ export function SignupForm({ onBack, onSwitchToLogin }: SignupFormProps) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [confirmEmail, setConfirmEmail] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -25,12 +26,15 @@ export function SignupForm({ onBack, onSwitchToLogin }: SignupFormProps) {
     }
 
     setIsLoading(true)
-    const { error } = await signUp(email, password, displayName)
+    const { error, confirmEmail } = await signUp(email, password, displayName)
     if (error) {
       setError(error)
       setIsLoading(false)
+    } else if (confirmEmail) {
+      setConfirmEmail(true)
+      setIsLoading(false)
     }
-    // On success, AuthContext will set needsOnboarding = true, and App will show OnboardingFlow
+    // If no confirmation needed, AuthContext will set needsOnboarding = true
   }
 
   return (
@@ -45,6 +49,23 @@ export function SignupForm({ onBack, onSwitchToLogin }: SignupFormProps) {
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-12">
         <div className="w-full max-w-sm">
+          {confirmEmail ? (
+            <div className="text-center">
+              <div className="w-14 h-14 rounded-2xl bg-forest-500 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle size={24} className="text-white" />
+              </div>
+              <h1 className="font-heading text-2xl font-bold text-alpine-900">Check Your Email</h1>
+              <p className="text-alpine-500 mt-2">
+                We sent a confirmation link to <strong className="text-alpine-700">{email}</strong>. Click the link to activate your account, then come back and sign in.
+              </p>
+              <button
+                onClick={onSwitchToLogin}
+                className="mt-6 w-full py-3.5 bg-forest-600 text-white font-semibold rounded-xl hover:bg-forest-700 transition-colors"
+              >
+                Go to Sign In
+              </button>
+            </div>
+          ) : <>
           {/* Header */}
           <div className="text-center mb-8">
             <div className="w-14 h-14 rounded-2xl bg-sunset-500 flex items-center justify-center mx-auto mb-4">
@@ -125,6 +146,7 @@ export function SignupForm({ onBack, onSwitchToLogin }: SignupFormProps) {
               Sign in
             </button>
           </div>
+          </>}
         </div>
       </div>
     </div>

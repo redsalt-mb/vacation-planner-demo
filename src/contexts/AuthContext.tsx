@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase, supabaseConfigured } from '../lib/supabase'
 import type { User, Session } from '@supabase/supabase-js'
 
@@ -18,7 +18,7 @@ export interface UserProfile {
 }
 
 interface AuthContextValue extends AuthState {
-  signUp: (email: string, password: string, displayName: string) => Promise<{ error: string | null }>
+  signUp: (email: string, password: string, displayName: string) => Promise<{ error: string | null; confirmEmail: boolean }>
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: string | null }>
@@ -70,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }))
       if (session?.user) {
         loadProfile(session.user.id)
+        checkOnboarding(session.user.id)
       } else {
         setState(s => ({ ...s, profile: null, needsOnboarding: false }))
       }
@@ -112,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signUp(email: string, password: string, displayName: string) {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -122,7 +123,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!error) {
       setState(s => ({ ...s, needsOnboarding: true }))
     }
-    return { error: error?.message ?? null }
+    // If signup succeeded but no session, email confirmation is required
+    const confirmEmail = !error && !data.session
+    return { error: error?.message ?? null, confirmEmail }
   }
 
   async function signIn(email: string, password: string) {
@@ -186,9 +189,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null }
   }
 
-  function setNeedsOnboarding(value: boolean) {
+  const setNeedsOnboarding = useCallback((value: boolean) => {
     setState(s => ({ ...s, needsOnboarding: value }))
-  }
+  }, [])
 
   return (
     <AuthContext.Provider value={{

@@ -40,7 +40,7 @@ function MainApp() {
 
 /** Loads user's active plan, then wraps in Destination + Plan providers */
 function AuthenticatedApp() {
-  const { user, needsOnboarding } = useAuth()
+  const { user, needsOnboarding, setNeedsOnboarding } = useAuth()
   const [destinationId, setDestinationId] = useState<string | null>(null)
   const [isLoadingPlan, setIsLoadingPlan] = useState(true)
 
@@ -57,16 +57,19 @@ function AuthenticatedApp() {
         .eq('owner_id', user!.id)
         .eq('is_active', true)
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (data) {
         setDestinationId(data.destination_id)
+      } else {
+        // No active plan found — redirect to onboarding
+        setNeedsOnboarding(true)
       }
       setIsLoadingPlan(false)
     }
 
     loadActivePlan()
-  }, [user, needsOnboarding])
+  }, [user, needsOnboarding, setNeedsOnboarding])
 
   if (needsOnboarding) {
     return <OnboardingFlow />
