@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MapPin, Calendar, Loader2, ArrowRight, Sparkles, Plus } from 'lucide-react'
+import { MapPin, Calendar, Loader2, ArrowRight } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 
@@ -18,21 +18,12 @@ const MONTHS = [
   { value: 'december', label: 'Dec', emoji: '🎄' },
 ]
 
-type Step = 'destination' | 'period' | 'generating'
+type Step = 'destination' | 'period'
 
 interface DestinationResult {
   id: string
   name: string
   nameLocal: string | null
-  country: string
-  region: string | null
-  latitude: number
-  longitude: number
-  isNew?: boolean
-}
-
-interface GeocodingResult {
-  name: string
   country: string
   region: string | null
   latitude: number
@@ -44,21 +35,17 @@ export function OnboardingFlow() {
   const [step, setStep] = useState<Step>('destination')
   const [query, setQuery] = useState('')
   const [searchResults, setSearchResults] = useState<DestinationResult[]>([])
-  const [geocodeResults, setGeocodeResults] = useState<GeocodingResult[]>([])
   const [selectedDestination, setSelectedDestination] = useState<DestinationResult | null>(null)
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
   const [selectedYear] = useState(new Date().getFullYear())
   const [isSearching, setIsSearching] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [generatingMessage, setGeneratingMessage] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   async function handleSearch() {
     if (query.trim().length < 2) return
     setIsSearching(true)
     setError(null)
-    setGeocodeResults([])
 
     try {
       // Search existing destinations in DB
@@ -68,7 +55,7 @@ export function OnboardingFlow() {
         .ilike('name', `%${query.trim()}%`)
         .limit(5)
 
-      const dbResults: DestinationResult[] = (data ?? []).map(d => ({
+      setSearchResults((data ?? []).map(d => ({
         id: d.id,
         name: d.name,
         nameLocal: d.name_local,
@@ -76,18 +63,7 @@ export function OnboardingFlow() {
         region: d.region,
         latitude: d.latitude,
         longitude: d.longitude,
-      }))
-
-      setSearchResults(dbResults)
-
-      // If few DB results, also geocode to suggest new destinations
-      if (dbResults.length < 3) {
-        const geocoded = await geocodeSearch(query.trim())
-        // Filter out any that match existing DB results by name
-        const dbNames = new Set(dbResults.map(d => d.name.toLowerCase()))
-        const newResults = geocoded.filter(g => !dbNames.has(g.name.toLowerCase()))
-        setGeocodeResults(newResults)
-      }
+      })))
     } catch {
       setError('Failed to search destinations')
     } finally {
@@ -95,92 +71,9 @@ export function OnboardingFlow() {
     }
   }
 
-  async function geocodeSearch(q: string): Promise<GeocodingResult[]> {
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5&featuretype=city`
-      const res = await fetch(url, {
-        headers: { 'User-Agent': 'VacationPlanner/1.0' },
-      })
-      if (!res.ok) return []
-
-      const data = await res.json()
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return data
-        .filter((r: any) => r.type === 'city' || r.type === 'town' || r.type === 'village' || r.type === 'municipality' || r.class === 'place')
-        .slice(0, 3)
-        .map((r: any) => ({
-          name: r.address?.city || r.address?.town || r.address?.village || r.address?.municipality || r.name,
-          country: r.address?.country || '',
-          region: r.address?.state || r.address?.county || null,
-          latitude: parseFloat(r.lat),
-          longitude: parseFloat(r.lon),
-        }))
-    } catch {
-      return []
-    }
-  }
-
   function selectDestination(dest: DestinationResult) {
     setSelectedDestination(dest)
     setStep('period')
-  }
-
-  async function selectNewDestination(geo: GeocodingResult) {
-    // Generate the destination first
-    setIsGenerating(true)
-    setStep('generating')
-    setGeneratingMessage(`Discovering ${geo.name}...`)
-    setError(null)
-
-    try {
-      setGeneratingMessage(`Creating your guide to ${geo.name}...`)
-
-      const { data: fnData, error: fnError } = await supabase.functions.invoke('generate-destination', {
-        body: {
-          name: geo.name,
-          latitude: geo.latitude,
-          longitude: geo.longitude,
-          country: geo.country,
-          region: geo.region,
-        },
-      })
-
-      if (fnError) throw fnError
-      if (fnData?.error) throw new Error(fnData.error)
-
-      const destinationId = fnData.destinationId
-
-      // Now set the selected destination
-      setSelectedDestination({
-        id: destinationId,
-        name: geo.name,
-        nameLocal: null,
-        country: geo.country,
-        region: geo.region,
-        latitude: geo.latitude,
-        longitude: geo.longitude,
-        isNew: !fnData.alreadyExists,
-      })
-
-      // Kick off enrichment in the background (don't wait for it)
-      if (!fnData.alreadyExists) {
-        supabase.functions.invoke('enrich-with-places', {
-          body: { destinationId },
-        }).catch(() => {
-          // Enrichment failure is non-critical
-          console.warn('Background enrichment failed — photos may be unavailable')
-        })
-      }
-
-      setStep('period')
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to set up destination'
-      setError(message)
-      setStep('destination')
-    } finally {
-      setIsGenerating(false)
-    }
   }
 
   async function handleFinish() {
@@ -210,39 +103,6 @@ export function OnboardingFlow() {
       setError('Failed to create your plan. Please try again.')
       setIsCreating(false)
     }
-  }
-
-  // Generating step — shown while AI creates the destination
-  if (step === 'generating') {
-    return (
-      <div className="min-h-screen bg-alpine-50 flex flex-col items-center justify-center px-6">
-        <div className="w-full max-w-sm text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-forest-500 to-sky-500 flex items-center justify-center mx-auto mb-6 animate-pulse">
-            <Sparkles size={28} className="text-white" />
-          </div>
-          <h1 className="font-heading text-xl font-bold text-alpine-900 mb-2">
-            Setting Up Your Destination
-          </h1>
-          <p className="text-alpine-500 text-sm mb-6">{generatingMessage}</p>
-          <div className="flex items-center justify-center gap-2">
-            <Loader2 size={20} className="animate-spin text-forest-500" />
-            <span className="text-sm text-alpine-400">This may take a moment...</span>
-          </div>
-
-          {error && (
-            <div className="mt-6 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
-              {error}
-              <button
-                onClick={() => { setStep('destination'); setError(null) }}
-                className="block mt-2 text-red-500 underline text-xs"
-              >
-                Go back
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    )
   }
 
   if (step === 'destination') {
@@ -310,44 +170,11 @@ export function OnboardingFlow() {
             </div>
           )}
 
-          {/* New destinations from geocoding */}
-          {geocodeResults.length > 0 && (
-            <div className="mb-4">
-              <p className="text-xs font-medium text-alpine-400 uppercase tracking-wide mb-2">
-                <Plus size={12} className="inline mr-1" />
-                Generate new destination
-              </p>
-              <div className="space-y-2">
-                {geocodeResults.map((geo, i) => (
-                  <button
-                    key={i}
-                    onClick={() => selectNewDestination(geo)}
-                    disabled={isGenerating}
-                    className="w-full text-left p-4 bg-gradient-to-r from-forest-50 to-sky-50 rounded-xl border border-forest-200 hover:border-forest-400 transition-colors disabled:opacity-50"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-alpine-900 flex items-center gap-1.5">
-                          <Sparkles size={14} className="text-forest-500" />
-                          {geo.name}
-                        </p>
-                        <p className="text-sm text-alpine-500">
-                          {[geo.region, geo.country].filter(Boolean).join(', ')}
-                        </p>
-                      </div>
-                      <ArrowRight size={16} className="text-forest-500" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {searchResults.length === 0 && geocodeResults.length === 0 && query.length >= 2 && !isSearching && (
+          {searchResults.length === 0 && query.length >= 2 && !isSearching && (
             <div className="text-center py-6 text-alpine-400 text-sm">
-              <Sparkles size={20} className="mx-auto mb-2 text-alpine-300" />
+              <MapPin size={20} className="mx-auto mb-2 text-alpine-300" />
               <p>No results found for "{query}".</p>
-              <p className="mt-1">Try a different search term.</p>
+              <p className="mt-1">This destination isn't available yet. Try "Vipiteno".</p>
             </div>
           )}
 
